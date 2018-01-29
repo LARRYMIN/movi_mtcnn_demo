@@ -1,0 +1,4 @@
+{
+    "id": "GuzziSPI",
+    "git_version": "$(git_version)"
+},

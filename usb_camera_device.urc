@@ -1,0 +1,247 @@
+USB-resource-file 3.00 =
+    {
+    Device     {
+        Class            0xEF
+        SubClass         0x02
+        Protocol         0x01
+        Vendor           0x18d1     %tag% S_VENDOR_ID
+        Product-ID       0x2d00     %tag% S_PRODUCT
+        Device-Version   1.10
+        serial-number    S_SERIALNUMBER
+        } %no external name% ;
+
+    #### here is the first (and only) configuration.
+    Configuration 1
+        {
+        # %tag% CONFIG1_ID -- no string, there is only one config.
+        % Bus-Powered % Self-Powered    %the flags%
+        Power 40 mA
+        % private descriptors would go here %
+
+        private-descriptors
+            {
+            # INTERFACE_ASSOCIATION (8 bytes)
+            raw    {
+                0x0B    # INTERFACE_ASSOCIATION
+                0x00    # bFirstInterface
+                0x02    # bInterfaceCount
+                0x0E    # bFunctionClass
+                0x03    # bFunctionSubClass
+                0x00    # bFunctionProtocol
+                0x00    # string-index, there isn't way to specify name
+                };
+            }
+
+        #########################
+        #    Video Control    #
+        #########################
+        interface 0
+            {
+            alternate-setting 0
+            class    0x0E    #video class
+            subclass 0x01    #video control
+            protocol 0x00    #none
+            name    S_VIDEO_CONTROL
+
+            # here are the class descriptors.
+            private-descriptors
+                {
+                # VC_HEADER (13 bytes)
+                raw    {
+                    0x24          # class-specific IFC
+                    0x01          # VC_HEADER
+                    word(0x100)   # version
+                    word(50)      # total length
+                    dword(1000)   # dwClockFrequency
+                    1             # number of VideoStreaming interfaces
+                    1             # the interface number of 1st VideoStreaming
+                    };
+
+                # VC_INPUT_TERMINAL (17 bytes)
+                raw    {
+                    0x24       # class-specific IFC
+                    0x02       # VC_INPUT_TERMINAL
+                    0x01       # terminal id: 1
+                    word(0x0201)    # type: ITT_CAMERA
+                    0x00       # associated terminal
+                    0          # string-index
+                    word(0)    # wObjectiveFocalLengthMin
+                    word(0)    # wObjectiveFocalLengthMax
+                    word(0)    # wOcularFocalLength
+                    0x02       # bControlSize
+                    word(0x80) # bmControls
+                    };
+
+                # VC_OUTPUT_TERMINAL (9 bytes)
+                raw    {
+                    0x24    # class-specific IFC
+                    0x03    # VC_OUTPUT_TERMINAL
+                    0x02    # terminal id: 2
+                    word(0x0101)    # type: TT_STREAMING
+                    0x00    # associated terminal
+                    0x03    # bSourceID
+                    0       # string-index
+                    };
+
+                # VC_PROCESSING_UNIT (11 bytes)
+                raw    {
+                    0x24    # class-specific IFC
+                    0x05    # VC_PROCESSING_UNIT
+                    0x03    # unit id: 5
+                    0x01    # source id: 1
+                    word(0) # type: wMaxMultiplier
+                    0x02    # bControlSize
+                    word(0x1D7F)    # bmControls
+                    0       # string-index
+                    };
+
+                }
+
+            # here is the notification endpoint
+            #endpoints
+            #    interrupt in packet-size 8
+            #        polling-interval 1
+            #    private-descriptors
+            #        {
+            #        # EP_INTERRUPT (5 bytes)
+            #        raw    {
+            #            0x25      # CS_ENDPOINT
+            #            0x03      # EP_INTERRUPT
+            #            word(8)   # wMaxTransferSize
+            #            };
+            #        }
+                ;
+            }
+
+        #################################
+        #    Video Stream In     #
+        #################################
+        interface 1
+            {
+            alternate-setting 0
+            class    0x0E    #video class
+            subclass 0x02    #video streaming
+            protocol 0x00    #
+            name    S_VIDEO_STREAM_IN
+
+            # here are the class descriptors.
+            private-descriptors
+                {
+                # VS_INPUT_HEADER (14 bytes)
+                raw    {
+                    0x24    # class-specific IFC
+                    0x01    # VS_INPUT_HEADER
+                    0x01    # bNumFormats
+                    word(85)     # total length
+                    0x81    # bEndpointAddress
+                    0x00    # bmInfo
+                    0x02    # bTerminalLink
+                    0x00    # bStillCaptureMethod
+                    0x00    # bTriggerSupport
+                    0x00    # bTriggerUsage
+                    0x01    # bControlSize
+                    0x00    # bmaControls
+                    };
+
+                # VS_FORMAT_UNCOMPRESSED (27 bytes)
+                raw    {
+                    0x24    # class-specific IFC
+                    0x04    # VS_FORMAT_UNCOMPRESSED
+                    0x01    # bFormatIndex
+                    0x01    # bNumFrameDescriptors
+                  0x59 0x55 0x59 0x32 0x00 0x00 0x10 0x00 0x80 0x00 0x00 0xAA 0x00 0x38 0x9B 0x71 # YUY2 guid
+#                    0x4E 0x56 0x31 0x32 0x00 0x00 0x10 0x00 0x80 0x00 0x00 0xAA 0x00 0x38 0x9B 0x71 # NV12 guid
+#                    0x49 0x34 0x32 0x30 0x00 0x00 0x10 0x00 0x80 0x00 0x00 0xAA 0x00 0x38 0x9B 0x71 # I420 guid
+                    0x10    # bBitsPerPixel
+                    0x01    # bDefaultFrameIndex
+                    0x00    # bAspectRatioX
+                    0x00    # bAspectRatioX
+                    0x00    # bmInterlaceFlags
+                    0x00    # bCopyProtect
+                    };
+
+               # VS_FRAME_UNCOMPRESSED (38 bytes)
+                raw    {
+                    0x24               # class-specific IFC
+                    0x05               # VS_FRAME_UNCOMPRESSED
+                    0x01               # bFrameIndex
+                    0x02               # bmCapabilities
+                    word(4300)         # wWidth For guzziPcApp it is ok to report some bigger size, but for real UVC camera you should be very accurate
+                    word(3200)         # wHeight
+                    (speed == super) ? dword(1990656000) : dword( 4915200)  # dwMinBitRate - 1920 * 1080 * 16 * fps
+                    (speed == super) ? dword(1990656000) : dword(73728000)  # dwMinBitRate - 1920 * 1080 * 16 * fps
+                    dword(4147200)     # dwMaxVideoFrameBufferSize:  wWidth * wHeight * 2
+                    (speed == super) ? dword(166666) : dword(  666666)      # dwDefaultFrameInterval
+                    0x00               # bFrameIntervalType
+                    (speed == super) ? dword(166666) : dword(  666666)      # dwMinFrameInterval
+                    (speed == super) ? dword(166666) : dword(10000000)      # dwMaxFrameInterval
+                    dword(0)           # dwFrameIntervalStep
+                    };
+
+                # VS_COLORFRAME (6 bytes)
+                raw    {
+                    0x24    # class-specific IFC
+                    0x0D    # VS_COLORFRAME
+                    0x01    # bColorPrimaries
+                    0x01    # bTransferCharacteristics
+                    0x01    # bMatrixCoefficients
+                    };
+                }
+
+                endpoints
+                    bulk  in
+                ;
+            }
+
+        } %no name% ;
+
+    strings
+        {
+        properties external read-only S_SERIALNUMBER;
+
+        default, language "English (USA)"
+            {
+            S_VENDOR_ID = "Google";
+            S_PRODUCT = "Movidius camera";
+            S_SERIALNUMBER = "DUMMY";
+
+            S_VIDEO_CONTROL = "Demo Camera";
+            S_VIDEO_STREAM_IN = "Video In";
+            }
+        } %strings% ;
+    } %no name% ;
+
+#### the stuff we need to generate the external string info ####
+application
+    {
+    structure
+        {
+        type name "UDEVICE_Camera";
+        };
+    initialization
+        {
+        % name to compile for the init function: %
+        function name "usbrc_Udevice_camera_init";
+
+        % assumed name of file %
+        file name "usb_camera_device.c";
+        };
+    header-file
+        {
+        file name "usb_camera_device.h";
+        };
+    descriptor table
+        {
+        internal names static;
+                functions
+            {
+            with string filter table;
+            get-descriptor
+                "UsbPumpFilter_MultiConfigModalDescriptors";
+            % no set-descriptor "<name>"; %
+            };
+        };
+    };
+
+% end of file %
+
